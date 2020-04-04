@@ -7,9 +7,9 @@ Uses
 //cthreads,
 //cmem,
 
-  LCLIntf, LCLType, LMessages,
+  LCLIntf, LCLType,
 
-  Forms,Dialogs, SysUtils, Variants, Classes, Graphics, Controls;
+  Forms,Dialogs, SysUtils, Classes, Graphics, Controls;
 
 Type FT_Result = Integer;
 
@@ -110,6 +110,7 @@ Function Read_USB_Device_Buffer(var FT:DWord;Read_Count:Integer) : Integer;
 Function Write_USB_Device_Buffer(var FT:DWord; p:pointer; Write_Count:Integer) : Integer;
 Function Reset_USB_Device : FT_Result;
 Function Set_USB_Device_BaudRate (FT:DWord) : FT_Result;
+Function Set_USB_Device_BaudRateCam (ftHandle:DWORD;Baud_Rate:DWord) : FT_Result;
 Function Set_USB_Device_BaudRate_Divisor(Divisor:Dword) : FT_Result;
 Function Set_USB_Device_DataCharacteristics : FT_Result;
 Function Set_USB_Device_FlowControl : FT_Result;
@@ -205,8 +206,8 @@ Var
 
     Manufacturer: array [0..63] of char;
     ManufacturerID: array [0..15] of char;
-    Description:  array [0..63] of char;
-    SerialNumber:  array [0..15] of char;
+    Description:  array [0..63] of ansichar;
+    SerialNumber:  array [0..55] of char;
     LocID : DWord;
     EEDataBuffer : TFT_Program_Data;
     UserData :  array [0..63] of byte;
@@ -320,7 +321,11 @@ var
    FT_Event_Handle : DWord;
 
 
+
 implementation
+
+ uses Unit1;
+
 //Classic functions
 function FT_GetNumDevices(pvArg1:Pointer; pvArg2:Pointer; dwFlags:Dword):FT_Result; stdcall; External FT_DLL_Name name 'FT_ListDevices';
 function FT_ListDevices(pvArg1:Dword; pvArg2:Pointer; dwFlags:Dword):FT_Result; stdcall; External FT_DLL_Name name 'FT_ListDevices';
@@ -482,13 +487,24 @@ Begin
 SetDeviceString(Serial_Number);
 Result := FT_OpenEx(@FT_Device_String_Buffer,FT_OPEN_BY_SERIAL_NUMBER,@FT);
 If Result <> FT_OK then FT_Error_Report('Open_USB_Device_By_Serial_Number',Result);
+Form1.Memo1.Lines.Add('Finding:'+FT_Device_String_Buffer);
 End;
 
 
 Function Open_USB_Device_By_Device_Description(Device_Description:string) : FT_Result;
 Begin
 SetDeviceString(Device_Description);
-Result := FT_OpenEx(@FT_Device_String_Buffer,FT_OPEN_BY_DESCRIPTION,@FT_Handle);
+if Device_Description='CAM86 A' then
+ begin
+   Result := FT_OpenEx(@FT_Device_String_Buffer,FT_OPEN_BY_DESCRIPTION,@FT_HANDLEA);
+   Form1.Memo1.Lines.Add('Finding:'+FT_Device_String_Buffer);
+ end;
+if Device_Description='CAM86 B' then
+ begin
+   Result := FT_OpenEx(@FT_Device_String_Buffer,FT_OPEN_BY_DESCRIPTION,@FT_HANDLEB);
+   Form1.Memo1.Lines.Add('Finding:'+FT_Device_String_Buffer);
+ end;
+
 If Result <> FT_OK then FT_Error_Report('Open_USB_Device_By_Device_Description',Result);
 End;
 
@@ -548,6 +564,13 @@ End;
 Function Set_USB_Device_BaudRate(FT:DWord) : FT_Result;
 Begin
 Result :=  FT_SetBaudRate(FT,FT_Current_Baud);
+If Result <> FT_OK then FT_Error_Report('FT_SetBaudRate',Result) else
+if Show_mess <> nil then Show_mess.Add('SetBaudRate : '+inttostr(FT_Current_Baud));
+End;
+
+Function Set_USB_Device_BaudRateCam(ftHandle:DWORD;Baud_Rate:DWord) : FT_Result;
+Begin
+Result :=  FT_SetBaudRate(ftHandle,FT_Current_Baud);
 If Result <> FT_OK then FT_Error_Report('FT_SetBaudRate',Result) else
 if Show_mess <> nil then Show_mess.Add('SetBaudRate : '+inttostr(FT_Current_Baud));
 End;

@@ -5,6 +5,7 @@ program Viewer;
 {$ENDIF}
 
 uses
+CThreads,
 {$IFnDEF FPC}
 {$ELSE}
   Interfaces,

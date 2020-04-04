@@ -1,8 +1,6 @@
 unit ImCam;
 
-{$IFDEF FPC}
-  {$MODE Delphi}
-{$ENDIF}
+
 
 interface
 
@@ -118,9 +116,9 @@ for y:=0 to Height-1 do
   Line :=Image.ScanLine[y];
   for x:=0 to Width-1 do
     begin
-     bliner:=bufi2[3*x+0+3*y*Width];
-     blineg:=bufi2[3*x+1+3*y*Width];
-     blineb:=bufi2[3*x+2+3*y*Width];
+     bliner:=bufi2^[3*x+0+3*y*Width];
+     blineg:=bufi2^[3*x+1+3*y*Width];
+     blineb:=bufi2^[3*x+2+3*y*Width];
      if iso < 0 then
       begin
        bliner:=bliner-migis;
@@ -148,9 +146,10 @@ for y:=0 to Height-1 do
      inc(gisr[bliner]);
      inc(gisg[blineg]);
      inc(gisb[blineb]);
-     Line^[3*x+0]:=blineb;
-     Line^[3*x+1]:=blineg;
-     Line^[3*x+2]:=bliner;
+
+     Line^[3*x+0]:=byte(bliner);
+     Line^[3*x+1]:=byte(blineg);
+     Line^[3*x+2]:=byte(blineb);
     end;
   end;
 end;

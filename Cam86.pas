@@ -1,18 +1,13 @@
 unit Cam86;
 
-{$IFDEF FPC}
-  {$MODE Delphi}
-{$ENDIF}
+// {$mode objfpc}{$H+}
 
 interface
 
 uses
-{$IFnDEF FPC}
-  MMSystem, Windows,
-{$ELSE}
-  LCLIntf, LCLType, LMessages,
-{$ENDIF}
-  Classes, SysUtils, MyD2XX, SyncObjs, ExtCtrls;
+ // CThreads,
+  LCLIntf, LCLType,
+  Classes, SysUtils, MyD2XX;
 
 type
       {Class for reading thread}
@@ -42,8 +37,8 @@ var   IsConnected : boolean = false;        //ïåðåìåííàÿ-ôëàã, î�
       mCameraState : integer = 0;           //ïåðåìåííàÿ-ñîñòîÿíèå êàìåðû  0 - ready 1 - longexp 2 - read
       ExposureTimer : integer;              //òàéìåð ýêñïîçèöèè
       co: posl;                             //ïåðåìåííàÿ äëÿ âòîðîãî ïîòîêà (÷òåíèå èçîáðàæåíèÿ)
-      bufim:array[0..CameraHeight*CameraWidth-1] of word;       //áóôåðíûé ìàññèâ-èçîáðàæåíèå äëÿ îïåðàöèé
-      bufi2:array[0..3*CameraHeight*CameraWidth-1] of word;     //áóôåðíûé ìàññèâ-èçîáðàæåíèå RGB
+      bufim:array[0..3000*2000-1] of word;       //áóôåðíûé ìàññèâ-èçîáðàæåíèå äëÿ îïåðàöèé
+      bufi2:array[0..3*3000*2000-1] of word;     //áóôåðíûé ìàññèâ-èçîáðàæåíèå RGB
       mYn,mdeltY:integer;                   //íà÷àëî ÷òåíèÿ è êîëè÷åñòâî ïî ñòðîêàì
       //mXn,mdeltX:integer;                   //íà÷àëî ÷òåíèÿ è êîëè÷åñòâî ïî ñòîëáöàì
       zatv:byte;
@@ -75,15 +70,15 @@ function CameraReadingTime(val: integer)  : WordBool;
 
 implementation
 
-{ Íåáîëüøîå ïîÿñíåíèå ðàáîòû ñ FT2232LH.
- Âñåãäà èñïîëüçóåòñÿ òàêîé ïðèåì:
-  1. Âíà÷àëå çàïîëíÿåòñÿ áóôåð è èñõîäíûìè áàéòàìè (íåîáõîäèìîé ïîñëåäîâàòåëüíîñòè èìïóëüñîâ íà âûâîäàõ ïîðòà BDBUS).
-Ïðè ýòîì èíêðåìåíòèðóåòñÿ óêàçàòåëü adress.
-  2. Äàëåå âåñü ýòîò ìàññèâ ïåðåäàåòñÿ íà âûõîä êîìàíäîé: n:=Write_USB_Device_Buffer(FT_CAM8B,adress);
-Çàìå÷àòåëüíàÿ ìèêðîñõåìà FT2232HL ÷åñòíî áåç çàäåðæåê âñå ýòî ïåðåäàåò íà ñâîé ïîðò BDBUS. Ïåðåäà÷à 1 áàéòà ïðè ýòîì çàíèìàåò 65 íñ.
-Âðåìÿ îòðàáîòêè ñëåäóþùåé êîìàíäû n:=Write_USB_Device_Buffer(FT_CAM8B,adress) çàâèñèò îò çàãðóæåííîñòè îïåðàöèîíêè è íå êîíòðîëèðóåòñÿ
-íàìè. Ïîýòîìó êðèòè÷åñêóþ ïîñëåäîâàòåëüíîñòè èìïóëüñîâ íóæíî çàïîëíÿòü âñþ, à íå ïåðåäàâàòü ïî î÷åðåäè.
-Áëàãî ïðîãðàìíûé áóôåð äðàéâåðà ýòî ïîçâîëÿåò (â ýòîé ïðîãðàììå äî 24 Ìáàéò!) Äëÿ ýòîãî íóæíî èçìåíèòü òåêñò D2XX.pas, ÿ íàçâàë åãî MyD2XX.pas}
+{ Breve explication du travail avec FT2232LH.
+ Cette technique est toujours utilisee:
+  1. Premierement, le tampon est rempli avec les octets d'origine (la sequence d'impulsions necessaire sur les terminaux du port BDBUS).
+Cela incremente le pointeur d'adresse.
+  2. Ensuite, ce tableau entier est transfere vers la sortie par la commande: n: = Write_USB_Device_Buffer (FT_CAM8B, adresse);
+La puce FT2232HL remarquable, honnetement et sans delai, reporte tout cela sur son port BDBUS. Le transfert d'un octet prend 65 ns.
+Le temps de traitement de la commande suivante n: = Write_USB_Device_Buffer (FT_CAM8B, adresse) depend de la charge sur le systeme d'exploitation et n'est pas controle
+par nous Par consequent, la sequence critique des impulsions doit etre renseignee dans tous et non transmise a son tour.
+Heureusement, la memoire tampon du logiciel du pilote le permet (jusqua 24 Mo dans ce programme!). Pour ce faire, vous devez modifier le texte D2XX.pas, je lai nomme MyD2XX.pas.}
 
 function Qbuf():integer;
 begin
@@ -149,54 +144,34 @@ procedure ComRead;
 begin
   co:=posl.Create(true);
   co.FreeOnTerminate:=true;
-  co.Priority:=tpNormal;//Highest;//Lower;//st;//r;//Normal;
-  co.Resume;
+  co.Priority:=tpNormal; //Highest;//Lower;//st;//r;//Normal;
+  co.Start;
 end;
 
-procedure posl.Execute;                                     //ñîáñòâåííî ñàìî ÷òåíèå ìàññèâà ÷åðåç ïîðò ADBUS
-{ Õèòðîå ïðåîáðàçîâàíèå ñ÷èòàííîãî áóôåðà FT2232HL â áóôåðíûé ìàññèâ èçîáðàæåíèÿ
-  èç-çà îñîáåííîñòåé AD9822 ñ÷èòûâàåì ñíà÷àëà ñòàðøèé áàéò, ïîòîì ìëàäøèé, à â delphi íàîáîðîò.
-  Èñïîëüçóåì òàêæå  òèï integer32, à íå word16 èç-çà ïåðåïîëíåíèÿ ïðè ïîñëåäóþùèõ îïåðàöèÿõ }
+procedure posl.Execute;
+{ Conversion d'un tampon de lecture FT2232HL en un tableau de tampons d'image
+   En raison des caracteristiques de l'A9822, nous lisons loctet haut en premier, puis loctet bas et vice versa en delphi.
+   Nous utilisons egalement integer32, pas word16, en raison d'un debordement lors d'operations ulterieures }
 var
 x,y:integer;
 begin
  Read_USB_Device_Buffer(FT_HANDLEA,kolbyte);
- if mBin = 0 then
- begin
  for y:= 0 to mdeltY-1 do
   begin
-     for x:=0 to 1499 do
+     for x:=0 to mdeltY-1 do
       begin
-       bufim[2*x+0+(2*(y+mYn)+0)*3000]:=swap(FT_In_Buffer[4*x+4+y*6004]);
-       bufim[2*x+0+(2*(y+mYn)+1)*3000]:=swap(FT_In_Buffer[4*x+5+y*6004]);
-       bufim[2*x+1+(2*(y+mYn)+1)*3000]:=swap(FT_In_Buffer[4*x+6+y*6004]);
-       bufim[2*x+1+(2*(y+mYn)+0)*3000]:=swap(FT_In_Buffer[4*x+7+y*6004]);
+       bufim[2*x+0+(2*(y+mYn)+0)*CameraWidth]:=swap(FT_In_Buffer[4*x+4+y*6004]);
+       bufim[2*x+0+(2*(y+mYn)+1)*CameraWidth]:=swap(FT_In_Buffer[4*x+5+y*6004]);
+       bufim[2*x+1+(2*(y+mYn)+1)*CameraWidth]:=swap(FT_In_Buffer[4*x+6+y*6004]);
+       bufim[2*x+1+(2*(y+mYn)+0)*CameraWidth]:=swap(FT_In_Buffer[4*x+7+y*6004]);
       end;
-  end;
-  end        else
-  begin
-  for y:= 0 to mdeltY-1 do
-  begin
-     for x:=0 to 1498 do
-      begin
-       bufim[2*x+0+(2*(y+mYn)+0)*3000]:=swap(FT_In_Buffer[x+7+y*1504]);
-       bufim[2*x+0+(2*(y+mYn)+1)*3000]:=swap(FT_In_Buffer[x+7+y*1504]);
-       bufim[2*x+1+(2*(y+mYn)+1)*3000]:=swap(FT_In_Buffer[x+7+y*1504]);
-       bufim[2*x+1+(2*(y+mYn)+0)*3000]:=swap(FT_In_Buffer[x+7+y*1504]);
-      end;
-     x:=1499;
-     bufim[2*x+0+(2*(y+mYn)+0)*3000]:=swap(FT_In_Buffer[x+6+y*1504]);
-     bufim[2*x+0+(2*(y+mYn)+1)*3000]:=swap(FT_In_Buffer[x+6+y*1504]);
-     bufim[2*x+1+(2*(y+mYn)+1)*3000]:=swap(FT_In_Buffer[x+6+y*1504]);
-     bufim[2*x+1+(2*(y+mYn)+0)*3000]:=swap(FT_In_Buffer[x+6+y*1504]);
-  end;
   end;
   mCameraState:=0;
   mImageReady := true;
 end;
 
-{Çàïîëíåíèå âûõîäíîãî áóôåðà ìàññèâîì äëÿ ïåðåäà÷è è ðàçìåùåíèÿ áàéòà val ïî àäðåñó adr â ìèêðîñõåìå AD9822.
- Ïåðåäà÷à èäåò â ïîñëåäîâàòåëüíîì êîäå.}
+{Remplir le tampon de sortie avec un tableau pour transmettre et placer le byte val a adr dans la puce AD9822.
+  La transmission est en code serie.}
 procedure AD9822(adr:byte;val:word);
 const
 kol = 64;
@@ -204,7 +179,7 @@ var
 dan:array[0..kol-1] of byte;
 i:integer;
 begin
- fillchar(dan,kol,portfirst);                                   //çàïîëíÿåòñÿ ìàññèâ ïåðâîíà÷àëüíûì çíà÷åíèåì íà âûâîäàõ ïîðòà BDBUS
+ fillchar(dan,kol,portfirst);
  for i:=1 to 32 do dan[i]:=dan[i] and $fe;
  for i:=0 to 15 do dan[2*i+2]:=dan[2*i+2] + 2;
  if (adr and 4) = 4 then begin dan[3]:=dan[3]+4;dan[4]:=dan[4]+4;end;
@@ -224,23 +199,16 @@ begin
  Write_USB_Device_Buffer(FT_HANDLEB,@dan, kol);
 end;
 
-{Èñïîëüçóåòñÿ 2 ðåæèìà:
- 1.Öâåòíîé áåç áèíèíãà.
- 2.×/Á ñ áèíèíãîì 2*2.
- Îñîáåííîñòüþ ìàòðèöû ICX453 ÿâëÿåòñÿ òî, ÷òî ãîðèçîíòàëüíûé ðåãèñòð èìååò óäâîåííóþ åìêîñòü è
- ïðè îäíîì øàãå âåðòèêàëüíîãî ñäâèãà â ãîðèçîíòàëüíûé ðåãèñòð "ïàäàåò" ñðàçó ïàðà ñòðîê,
- ïîýòîìó êîëè÷åñòâî ñòðîê äëÿ ýòèõ äâóõ ðåæèìèîâ îäèíàêîâîå.
-}
 
-{Çàïîëíåíèå âûõîäíîãî áóôåðà ìàññèâîì è ñîáñòâåííî ñàìà îïåðàöèÿ ÷òåíèÿ êàäðà â 1 ðåæèìå}
 procedure readframe;
 begin
  mCameraState := 2;
  mImageReady:=false;
  Purge_USB_Device_IN(FT_HANDLEA);
- Purge_USB_Device_OUT(FT_HANDLEB);
+
+ //Purge_USB_Device_OUT(FT_HANDLEB);
  comread;
- Spi_comm($1b,0);//$ffff);
+ Spi_comm($1b,0);
 end;
 
 {Set camera gain, return bool result}
@@ -263,41 +231,56 @@ end;
 function CameraReadingTime(val: integer)  : WordBool;
 begin
  Spi_comm($eb, val);
+ Result :=true;
 end;
 
 {Connect camera, return bool result}
-{Îïðîñ ïîäêëþ÷åííûõ óñòðîéñòâ è èíèöèàëèçàöèÿ AD9822}
+{Interrogation des peripheriques connectes et initialisation de l'AD9822}
 function CameraConnect () : WordBool;
 var  FT_flag, FT_OP_flag : boolean;
-I : Integer;
+I ,dev: Integer;
 begin
  FT_flag:=false;
  FT_Enable_Error_Report:=false;
  sensorTempCache := 0;
+ dev:=0;
  GetFTDeviceCount;
  I := FT_Device_Count-1;
  while I >= 0 do
   begin
    GetFTDeviceSerialNo(I);
-   if pos('CAM86',FT_Device_String) <> 0 then FT_flag:=true;    //åñëè îáíàðóæåí cam81 - ïîäêëþ÷àåì
+   if pos('A',FT_Device_String) <> 0 then inc(dev); // FT_flag:=true;    //åñëè îáíàðóæåí cam81 - ïîäêëþ÷àåì
+   if pos('B',FT_Device_String) <> 0 then inc(dev); // FT_flag:=true;    //åñëè îáíàðóæåí cam81 - ïîäêëþ÷àåì
    GetFTDeviceDescription(I);
    Dec(I);
   end;
+  if dev=2 then FT_flag:=true;
+
   FT_OP_flag:=true;
   if FT_flag then
    begin
-    if Open_USB_Device_By_Serial_Number(FT_HANDLEA,'CAM86A') <> FT_OK then FT_OP_flag := false;
-    if Open_USB_Device_By_Serial_Number(FT_HANDLEB,'CAM86B')  <> FT_OK then FT_OP_flag := false;
+    if Open_USB_Device_By_Device_Description('CAM86 A') <> FT_OK then FT_OP_flag := false;
+    if Open_USB_Device_By_Device_Description('CAM86 B') <> FT_OK then FT_OP_flag := false;
 
-    if Set_USB_Device_BitMode(FT_HANDLEB,$bf, $4)  <> FT_OK then FT_OP_flag := false;
-    FT_Current_Baud:=spusb;                         // BitMode for B-canal volocity = spusb
-    Set_USB_Device_BaudRate(FT_HANDLEB);
+    { BITMODE_RESET = 0x00, BITMODE_BITBANG = 0x01, BITMODE_MPSSE = 0x02, BITMODE_SYNCBB = 0x04,
+      BITMODE_MCU = 0x08, BITMODE_OPTO = 0x10, BITMODE_CBUS = 0x20, BITMODE_SYNCFF = 0x40,
+      BITMODE_FT1284 = 0x80
+      }
 
-    Set_USB_Device_LatencyTimer(FT_HANDLEB,2);       //ìàêñèìàëüíîå áûñòðîäåéñòâèå
-    Set_USB_Device_LatencyTimer(FT_HANDLEA,2);
+    if Set_USB_Device_BitMode(FT_HANDLEB,$bf, $04)  <> FT_OK then FT_OP_flag := false;
+
+    FT_Current_Baud:=spusb;  // BitMode for B-canal volocity = spusb
+    //CameraReadingTime(10);
+    Set_USB_Device_BaudRateCam(FT_HANDLEB,5600000);
+    Set_USB_Device_BaudRateCam(FT_HANDLEA,1400000);
+   // sleep(5000);
+    //Set_USB_Device_BaudRate(FT_HANDLEB);
+
+    Set_USB_Device_LatencyTimer(FT_HANDLEB,20); //performance maximale
+    Set_USB_Device_LatencyTimer(FT_HANDLEA,20);
     Set_USB_Device_TimeOuts(FT_HANDLEA,6000,100);
     Set_USB_Device_TimeOuts(FT_HANDLEB,100,100);
-    Set_USB_Parameters(FT_HANDLEA,65536,0);
+    Set_USB_Parameters(FT_HANDLEA,4096,0);
 
     Purge_USB_Device_IN(FT_HANDLEA);
     Purge_USB_Device_OUT(FT_HANDLEA);
@@ -306,7 +289,7 @@ begin
 
     adress:=0;
 
-    AD9822(0,$d8);//$58);             //ðåæèì AD9822 - êàíàë G,4 âîëüòà îïîðíîñòü, CDS ðåæèì
+    AD9822(0,$d8);
     AD9822(1,$a0);
     
     CameraSetGain(0);         //óñèëåíèå óñòàíàâëèâàåòñÿ òàêîå. ÷òî íå ïåðåïîëíÿåòñÿ ÀÖÏ
@@ -317,13 +300,15 @@ begin
     Spi_comm($db,0);
     sleep(100);
 
-    Purge_USB_Device_IN(FT_HANDLEA); //óáðàòü 2 áàéòà, âîçíèêøèõ ïîñëå reset
+    Purge_USB_Device_IN(FT_HANDLEA);
+
     mBin:=0;
 
     mCameraState:=0;
    end;
  IsConnected := FT_flag and FT_OP_flag;
  Result := FT_flag and FT_OP_flag;
+ mImageReady:=false;
 end;
 
 
@@ -358,49 +343,43 @@ end;
 
 function CameraStartExposure (Bin,StartX,StartY,NumX,NumY : integer; Duration : double; light : WordBool) : WordBool;// stdcall; export;
 var
-d0,d1:word;
 expoz:integer;
 begin
 
+ mImageReady := false;
  mYn:=StartY div 2;
  Spi_comm($4b,mYn);
  mdeltY:=NumY div 2;
  Spi_comm($5b,mdeltY);
 
- mBin := Bin;
- if bin = 1 then
- begin
- kolbyte:=mdeltY*3008;
- Spi_comm($8b,1);  //bining
- mBin:=1;
- end            else
- begin
  kolbyte:=mdeltY*12008;
  Spi_comm($8b,0);  //no bining
- mBin:=0;
- end;
 
  expoz:=round(Duration*1000);
  if expoz > 1000 then expoz:=1001;
  Spi_comm($6b,expoz);
 
- mImageReady := false;
+
  //camera exposing
  mCameraState := 1;
  if Duration > 1.0 then
  begin
   Spi_comm($2b,0); //shift3
   sleep(40);
-  //Spi_comm($cb,0); //clear frame
-  //sleep(180);                           // for time of clear frame
+  Spi_comm($cb,0); //clear frame
+  sleep(180);                           // for time of clear frame
   Spi_comm($3b,0); //off 15v
   eexp:=round(1000*(Duration-1.0)); //1.2
   indval:=eexp div 1000;
   ExposureTimer := SetTimer(0,0,1000,@ExposureTimerTick);
+// Spi_comm($cb,0); //clear frame
+ // sleep(180);                           // for time of clear frame
+  //readframe;
  end                   else
  begin
   eexp:=0;
   //Spi_comm($cb,0);
+  //sleep(180);
   readframe;
  end;
  Result := true;

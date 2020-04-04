@@ -1,19 +1,13 @@
 unit Unit1;
 
-{$IFDEF FPC}
-  {$MODE Delphi}
-{$ENDIF}
+{$mode objfpc}{$H+}
 
 interface
 
 uses
-{$IFnDEF FPC}
-  Windows,
-{$ELSE}
-  LCLIntf, LCLType, LMessages,
-{$ENDIF}
-  SysUtils, Variants, Classes, Graphics, Controls, Forms, Dos,
-  Dialogs, Buttons, StdCtrls, MyD2XX, IniFiles, Cam86, ImCam, ExtCtrls, ComCtrls, Math, Spin;
+  LCLIntf,
+  SysUtils, Variants, Classes, Graphics, Controls, Forms, Dos, strutils,
+  Dialogs, Buttons, StdCtrls, IniFiles, Cam86, ImCam, ExtCtrls, ComCtrls, Spin;
 
 type
 
@@ -29,14 +23,13 @@ type
     Label2: TLabel;
     ComboBox1: TComboBox;
     Image3: TImage;
-    Bin: TCheckBox;
+    ProgressBar1: TProgressBar;
     ROI: TCheckBox;
     Exposure: TLabel;
     RadioGroup1: TRadioGroup;
     Panel1: TPanel;
     information: TCheckBox;
     Timer1: TTimer;
-    ProgressBar1: TProgressBar;
     Edit1: TEdit;
     Offset: TTrackBar;
     Gain: TTrackBar;
@@ -124,7 +117,7 @@ implementation
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
- Show_mess:=nil;//Memo1.Lines;
+ //Show_mess:=nil;//Memo1.Lines;
  ff:=TMyImage.Create;
  ff.Width:=CameraWidth;
  ff.Height:=CameraHeight;
@@ -183,17 +176,11 @@ end;
 
 procedure TForm1.RisAll;
 begin
- if Bin.Checked then
-  begin
-   ff.ris(iso);
-   ff.RisGist;
-  end           else
-  begin
-   ff.Bayer;
-   ff.risRGB(iso);
-   ff.risGistRGB;
-  end;
- Form1.Image1.Canvas.StretchDraw(Rect(0,0,Form1.Image1.Width,Form1.Image1.Height),ff.Image);
+ ff.Bayer;
+ ff.risRGB(iso);
+ ff.risGistRGB;
+ // ff.Image.SaveToFile('test.bmp');
+ Image1.Canvas.StretchDraw(Rect(0,0,Image1.Width,Image1.Height),ff.Image);
  Image2.Canvas.CopyRect(Rect(0,0,Form1.Image2.Width,Form1.Image2.Height),ff.Image.Canvas,Rect(SXb,SYb,SXb+razm,SYb+razm));
  Form1.Image3.Canvas.StretchDraw(Rect(0,0,Form1.Image3.Width,Form1.Image3.Height),ff.GisGraf);
 end;
@@ -214,7 +201,9 @@ begin
                       GetImg.Enabled:=true;
                       Stop.Enabled:=true;
                       Timer2.Enabled:=true;
-                      st:='connect'
+                      st:='connected';
+                      Connect.Caption:='Disconnect';
+                     // CameraReadingTime(0);
                      end
   end                 else
   begin
@@ -228,6 +217,7 @@ begin
                          Stop.Enabled:=false;
                          Timer2.Enabled:=false;
                          st:='disconnect';
+                         Connect.Caption:='Connect';
                          Cooling.Checked:=false;
                         end else st:='';
   end;
@@ -237,10 +227,9 @@ end;
 procedure TForm1.GetimgClick(Sender: TObject);
 var
 st:string;
-ex,errcode:integer;
+ex:integer;
 mn:single;
 y0,dy:integer;
-Hour,Min,Sec,HSec : word;
 begin
  if ROI.Checked then
   begin
@@ -252,19 +241,34 @@ begin
  //Memo1.Lines.Add(inttostr(y0)+' '+inttostr(dy)); 
  st:=ComboBox1.Items.Strings[ComboBox1.ItemIndex];
  mn:=0;
- if pos('ms',st) <> 0 then mn:=0.001;
- if pos('sec',st) <> 0 then mn:=1.0;
- if pos('min',st) <>0 then mn:=60.0;
- val(st,ex,errcode);
+ if pos('ms',st) <> 0 then
+  begin
+    mn:=0.001;
+    st:=ReplaceStr(st,' ms','');
+    ex:=strtoint(st);
+  end;
+ if pos('sec',st) <> 0 then
+  begin
+    mn:=1.0;
+    st:=ReplaceStr(st,' sec','');
+    ex:=strtoint(st);
+  end;
+ if pos('min',st) <>0 then
+  begin
+    mn:=60.0;
+    st:=ReplaceStr(st,' ms','');
+    ex:=strtoint(st);
+  end;
+
+
  expo:=mn*ex;
  ff.exposure:=expo;
  ProgressBar1.Max:=round(expo);
  ProgressBar1.Position:=0;
  Timer1.Enabled:=true;
 // dt0:=GetTime(Hour,Min,Sec,HSec);
- if Bin.Checked then CameraStartExposure (1,0,y0,3000,dy,expo,true)
-                else CameraStartExposure (0,0,y0,3000,dy,expo,true);
-                Application.ProcessMessages;
+ CameraStartExposure (0,0,y0,3000,dy,expo,true);
+ Application.ProcessMessages;
  Getimg.Enabled:=false;
  repeat
   Application.ProcessMessages;
@@ -493,7 +497,7 @@ end;
 procedure TForm1.BinClick(Sender: TObject);
 begin
  WriteFitsCol.Checked:=false;
- WriteFitsCol.Enabled:=not Bin.Checked;
+// WriteFitsCol.Enabled:=not Bin.Checked;
 end;
 
 end.

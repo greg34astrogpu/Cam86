@@ -20,7 +20,7 @@ object Form1: TForm1
     Top = 8
     Width = 76
     AllowAllUp = True
-    Caption = 'CONNECT'
+    Caption = 'Connect'
     GroupIndex = 2
     OnClick = ConnectClick
   end
@@ -182,22 +182,13 @@ object Form1: TForm1
     TabOrder = 2
     Text = '0 ms'
   end
-  object Bin: TCheckBox
-    Left = 824
-    Height = 24
-    Top = 48
-    Width = 67
-    Caption = 'bin 2*2'
-    OnClick = BinClick
-    TabOrder = 3
-  end
   object ROI: TCheckBox
     Left = 824
     Height = 24
     Top = 72
     Width = 46
     Caption = 'ROI'
-    TabOrder = 4
+    TabOrder = 3
   end
   object Panel1: TPanel
     Left = 824
@@ -206,7 +197,7 @@ object Form1: TForm1
     Width = 192
     ClientHeight = 201
     ClientWidth = 192
-    TabOrder = 5
+    TabOrder = 4
     object RadioGroup1: TRadioGroup
       Left = -8
       Height = 185
@@ -307,14 +298,6 @@ object Form1: TForm1
       TabOrder = 6
     end
   end
-  object ProgressBar1: TProgressBar
-    Left = 63
-    Height = 17
-    Top = 520
-    Width = 321
-    Step = 1
-    TabOrder = 6
-  end
   object stop: TButton
     Left = 904
     Height = 41
@@ -323,7 +306,7 @@ object Form1: TForm1
     Caption = 'STOP'
     Enabled = False
     OnClick = stopClick
-    TabOrder = 7
+    TabOrder = 5
   end
   object Panel2: TPanel
     Left = 824
@@ -336,7 +319,7 @@ object Form1: TForm1
     Font.Name = 'MS Sans Serif'
     Font.Style = [fsBold]
     ParentFont = False
-    TabOrder = 8
+    TabOrder = 6
   end
   object ComboBox2: TComboBox
     Left = 920
@@ -376,7 +359,7 @@ object Form1: TForm1
       '-30'
     )
     OnChange = ComboBox2Change
-    TabOrder = 9
+    TabOrder = 7
     Text = '0 C'
   end
   object SpinEdit1: TSpinEdit
@@ -385,7 +368,7 @@ object Form1: TForm1
     Top = 32
     Width = 49
     MaxValue = 0
-    TabOrder = 10
+    TabOrder = 8
     Value = 10
   end
   object Cooling: TCheckBox
@@ -395,7 +378,7 @@ object Form1: TForm1
     Width = 68
     Caption = 'Cooling'
     OnClick = CoolingClick
-    TabOrder = 11
+    TabOrder = 9
   end
   object delay: TSpinEdit
     Left = 904
@@ -404,7 +387,7 @@ object Form1: TForm1
     Width = 73
     MaxValue = 1000
     MinValue = 2
-    TabOrder = 12
+    TabOrder = 10
     Value = 5
   end
   object Button1: TButton
@@ -414,7 +397,7 @@ object Form1: TForm1
     Width = 81
     Caption = 'Read Temp'
     OnClick = Button1Click
-    TabOrder = 13
+    TabOrder = 11
   end
   object Button2: TButton
     Left = 824
@@ -423,7 +406,7 @@ object Form1: TForm1
     Width = 75
     Caption = 'save dark'
     OnClick = Button2Click
-    TabOrder = 14
+    TabOrder = 12
   end
   object Button3: TButton
     Left = 912
@@ -432,7 +415,7 @@ object Form1: TForm1
     Width = 75
     Caption = 'load dark'
     OnClick = Button3Click
-    TabOrder = 15
+    TabOrder = 13
   end
   object Button4: TButton
     Left = 824
@@ -441,7 +424,7 @@ object Form1: TForm1
     Width = 75
     Caption = 'view dark'
     OnClick = Button4Click
-    TabOrder = 16
+    TabOrder = 14
   end
   object Button5: TButton
     Left = 912
@@ -450,7 +433,7 @@ object Form1: TForm1
     Width = 75
     Caption = 'QBuf'
     OnClick = Button5Click
-    TabOrder = 17
+    TabOrder = 15
   end
   object Offset: TTrackBar
     Left = 63
@@ -461,7 +444,7 @@ object Form1: TForm1
     Min = -127
     OnChange = OffsetChange
     Position = 0
-    TabOrder = 18
+    TabOrder = 16
   end
   object Gain: TTrackBar
     Left = 56
@@ -471,7 +454,16 @@ object Form1: TForm1
     Max = 63
     OnChange = GainChange
     Position = 0
-    TabOrder = 19
+    TabOrder = 17
+  end
+  object ProgressBar1: TProgressBar
+    Left = 56
+    Height = 20
+    Top = 517
+    Width = 328
+    Smooth = True
+    Step = 1
+    TabOrder = 18
   end
   object Timer1: TTimer
     Enabled = False
